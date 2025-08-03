@@ -14,6 +14,8 @@ import (
 
 func main() {
 
+	start := time.Now()
+
 	// Load config according to environment.
 	if err := config.LoadEnvironmentVariables(); err != nil {
 		log.Fatal(err)
@@ -64,6 +66,6 @@ func main() {
 		log.Fatal(err)
 	}
 
-	log.Println("Updated rates.")
+	log.Println("Updated rates. Took:", time.Since(start))
 
 }
