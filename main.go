@@ -1,10 +1,10 @@
 package main
 
 import (
+	"github.com/albegonzalezp/ratesupdater/config"
 	"github.com/albegonzalezp/ratesupdater/database"
 	"github.com/albegonzalezp/ratesupdater/models"
 	"github.com/albegonzalezp/ratesupdater/service/rateapi"
-	"github.com/joho/godotenv"
 	"gorm.io/gorm/clause"
 	"log"
 	"net/http"
@@ -13,21 +13,10 @@ import (
 )
 
 func main() {
-	// Load envs from local if not present in environment.
-	if os.Getenv("EXCHANGE_API_KEY") == "" ||
-		os.Getenv("EXCHANGE_API_URL") == "" ||
-		os.Getenv("DB_HOST") == "" ||
-		os.Getenv("DB_USER") == "" ||
-		os.Getenv("DB_PASSWORD") == "" ||
-		os.Getenv("DB_NAME") == "" ||
-		os.Getenv("DB_PORT") == "" {
 
-		log.Println("Loading environment variables from local.")
-		if err := godotenv.Load(); err != nil {
-			log.Fatal("Error loading .env file")
-		}
-	} else {
-		log.Println("Loading environment variables from environment")
+	// Load config according to environment.
+	if err := config.LoadEnvironmentVariables(); err != nil {
+		log.Fatal(err)
 	}
 
 	// Connects to db

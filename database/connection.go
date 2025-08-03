@@ -3,6 +3,7 @@ package database
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -15,11 +16,11 @@ type Database struct {
 // NewDatabase is the constructor for the database
 func NewDatabase() (*Database, error) {
 	// Get database configuration from environment variables or use defaults
-	host := getEnvOrDefault("DB_HOST", "localhost")
-	user := getEnvOrDefault("DB_USER", "postgres")
-	password := getEnvOrDefault("DB_PASSWORD", "postgres")
-	dbname := getEnvOrDefault("DB_NAME", "remesas")
-	port := getEnvOrDefault("DB_PORT", "5432")
+	host := os.Getenv(fmt.Sprintf("DB_HOST_%s", strings.ToUpper(os.Getenv("ENV"))))
+	user := os.Getenv(fmt.Sprintf("DB_USER_%s", strings.ToUpper(os.Getenv("ENV"))))
+	password := os.Getenv(fmt.Sprintf("DB_PASSWORD_%s", strings.ToUpper(os.Getenv("ENV"))))
+	dbname := os.Getenv(fmt.Sprintf("DB_NAME_%s", strings.ToUpper(os.Getenv("ENV"))))
+	port := os.Getenv(fmt.Sprintf("DB_PORT_%s", strings.ToUpper(os.Getenv("ENV"))))
 
 	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=disable TimeZone=UTC",
 		host, user, password, dbname, port,
@@ -33,14 +34,6 @@ func NewDatabase() (*Database, error) {
 	return &Database{
 		Db: db,
 	}, nil
-}
-
-// getEnvOrDefault returns the environment variable value or a default if not set
-func getEnvOrDefault(key, defaultValue string) string {
-	if value := os.Getenv(key); value != "" {
-		return value
-	}
-	return defaultValue
 }
 
 func (d *Database) GetDB() *gorm.DB {
