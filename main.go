@@ -66,6 +66,46 @@ func main() {
 		log.Fatal(err)
 	}
 
+	// Get rates
+
+	for _, rate := range ratesDb {
+
+		// If EUR -> VES we only update the payment method Dolares en Efectivo
+		if rate.BaseCode == "EUR" && rate.Code == "VES" {
+			if err := db.Db.Model(&models.PaymentMethod{}).
+				Where("currency_from = ? AND currency_to = ? AND is_custom = ? AND payment_method = ?", 1, 3, false, 3).
+				Update("rate", rate.Rate).Error; err != nil {
+				log.Fatal(err)
+			}
+		}
+
+		// If EUR -> USD update the rate for all payment methods
+		if rate.BaseCode == "EUR" && rate.Code == "USD" {
+			if err := db.Db.Model(&models.PaymentMethod{}).
+				Where("currency_from = ? AND currency_to = ? AND is_custom = ?", 1, 2, false).
+				Update("rate", rate.Rate); err != nil {
+				log.Fatal(err)
+			}
+		}
+
+		if rate.BaseCode == "EUR" && rate.Code == "COL" {
+			if err := db.Db.Model(&models.PaymentMethod{}).
+				Where("currency_from = ? AND currency_to = ? AND is_custom = ?", 1, 4, false).
+				Update("rate", rate.Rate); err != nil {
+				log.Fatal(err)
+			}
+		}
+
+		if rate.BaseCode == "EUR" && rate.Code == "PEN" {
+			if err := db.Db.Model(&models.PaymentMethod{}).
+				Where("currency_from = ? AND currency_to = ? AND is_custom = ?", 1, 5, false).
+				Update("rate", rate.Rate); err != nil {
+				log.Fatal(err)
+			}
+		}
+
+	}
+
 	log.Println("Updated rates. Took:", time.Since(start))
 
 }
