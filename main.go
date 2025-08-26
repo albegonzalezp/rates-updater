@@ -74,7 +74,7 @@ func main() {
 		// If EUR -> VES we only update the payment method Dolares en Efectivo
 		if rate.BaseCode == "EUR" && rate.Code == "VES" {
 			if err := db.Db.Model(&models.PaymentMethod{}).
-				Where("currency_from = ? AND currency_to = ? AND is_custom = ? AND payment_method_type = ?", 1, 3, false, 3).
+				Where("currency_from = ? AND currency_to = ? AND is_custom = ? AND payment_method_type = ?", 1, 3, false, 2).
 				Update("rate", rate.Rate).Error; err != nil {
 				log.Fatal(err.Error())
 			}
@@ -89,7 +89,7 @@ func main() {
 			}
 		}
 
-		if rate.BaseCode == "EUR" && rate.Code == "COL" {
+		if rate.BaseCode == "EUR" && rate.Code == "COP" {
 			if err := db.Db.Model(&models.PaymentMethod{}).
 				Where("currency_from = ? AND currency_to = ? AND is_custom = ?", 1, 4, false).
 				Update("rate", rate.Rate).Error; err != nil {
@@ -100,6 +100,22 @@ func main() {
 		if rate.BaseCode == "EUR" && rate.Code == "PEN" {
 			if err := db.Db.Model(&models.PaymentMethod{}).
 				Where("currency_from = ? AND currency_to = ? AND is_custom = ?", 1, 5, false).
+				Update("rate", rate.Rate).Error; err != nil {
+				log.Fatal(err.Error())
+			}
+		}
+
+		if rate.BaseCode == "VES" && rate.Code == "USD" {
+			if err := db.Db.Model(&models.PaymentMethod{}).
+				Where("currency_from = ? AND currency_to = ? AND is_custom = ?", 3, 2, false).
+				Update("rate", rate.Rate).Error; err != nil {
+				log.Fatal(err.Error())
+			}
+		}
+
+		if rate.BaseCode == "VES" && rate.Code == "EUR" {
+			if err := db.Db.Model(&models.PaymentMethod{}).
+				Where("currency_from = ? AND currency_to = ? AND is_custom = ?", 3, 1, false).
 				Update("rate", rate.Rate).Error; err != nil {
 				log.Fatal(err.Error())
 			}
