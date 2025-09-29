@@ -47,6 +47,12 @@ func main() {
 		log.Fatal(err)
 	}
 
+	// Get USD ->
+	rts, err = exSrv.GetRates("USD")
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	// Convert rates from API to db rates
 	ratesDb := rts.ToRateDB()
 
@@ -67,15 +73,35 @@ func main() {
 		log.Fatal(err)
 	}
 
-	// Get rates
+	// Get rates from p2p
+	rtsp2p, err := exSrv.GetUSDTtoVESp2pRate()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// base code: USD; code: VES; rate: 0.0004..
+	rateP2p := rtsp2p.ToRateDB()
+	if rateP2p.Rate != 0 {
+		ratesDb = append(ratesDb, rateP2p)
+	}
 
 	for _, rate := range ratesDb {
 
-		// If EUR -> VES we only update the payment method Dolares en Efectivo
+		// If EUR -> VES we only update the payment method Dolares en Efectivo and TRansferencia bancaria
 		if rate.BaseCode == "EUR" && rate.Code == "VES" {
+
+			// get the rate EUR -> USD
+			var rateEurUsd models.Rate
+			if err := db.Db.Where("base_code = ? AND code = ?", "EUR", "USD").First(&rateEurUsd).Error; err != nil {
+				log.Fatal(err.Error())
+			}
+
+			// get the rate USD -> VES from p2p
+			rate := rateEurUsd.Rate * rateP2p.Rate
+
 			if err := db.Db.Model(&models.PaymentMethod{}).
-				Where("currency_from = ? AND currency_to = ? AND is_custom = ? AND payment_method_type = ?", 1, 3, false, 2).
-				Update("rate", rate.Rate).Error; err != nil {
+				Where("currency_from = ? AND currency_to = ? AND is_custom = ? AND (payment_method_type = ? or payment_method_type = ?)", 1, 3, false, 2, 1).
+				Update("rate", rate).Error; err != nil {
 				log.Fatal(err.Error())
 			}
 		}
@@ -106,6 +132,7 @@ func main() {
 		}
 
 		if rate.BaseCode == "VES" && rate.Code == "USD" {
+
 			if err := db.Db.Model(&models.PaymentMethod{}).
 				Where("currency_from = ? AND currency_to = ? AND is_custom = ?", 3, 2, false).
 				Update("rate", rate.Rate).Error; err != nil {
@@ -114,9 +141,20 @@ func main() {
 		}
 
 		if rate.BaseCode == "VES" && rate.Code == "EUR" {
+
+			rate := 1 / rateP2p.Rate
+
+			// get the rate USD -> EUR
+			var rateUsdEur models.Rate
+			if err := db.Db.Where("base_code = ? AND code = ?", "USD", "EUR").First(&rateUsdEur).Error; err != nil {
+				log.Fatal(err.Error())
+			}
+
+			rate = rate / rateUsdEur.Rate
+
 			if err := db.Db.Model(&models.PaymentMethod{}).
 				Where("currency_from = ? AND currency_to = ? AND is_custom = ?", 3, 1, false).
-				Update("rate", rate.Rate).Error; err != nil {
+				Update("rate", rate).Error; err != nil {
 				log.Fatal(err.Error())
 			}
 		}

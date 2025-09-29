@@ -1,12 +1,14 @@
 package rateapi
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/albegonzalezp/ratesupdater/models"
 	"io"
 	"net/http"
 	"os"
+
+	"github.com/albegonzalezp/ratesupdater/models"
 )
 
 type Service struct {
@@ -38,9 +40,44 @@ func (s *Service) GetRates(baseCode string) (rates models.ExchangeRateResponse, 
 	}
 
 	if rates.Result != "success" {
-		return rates, fmt.Errorf(rates.Result)
+		return rates, fmt.Errorf("%v", rates.Result)
 	}
 
 	return rates, nil
 
+}
+
+// Get USDT/VES rate
+func (s *Service) GetUSDTtoVESp2pRate() (p2pResp models.P2pRateResponse, err error) {
+
+	req := models.P2pRateRequest{
+		Page:      1,
+		Rows:      10,
+		Asset:     "USDT",
+		Fiat:      "VES",
+		TradeType: "BUY",
+	}
+
+	payload, err := json.Marshal(req)
+	if err != nil {
+		return p2pResp, err
+	}
+
+	resp, err := s.Client.Post("https://p2p.binance.com/bapi/c2c/v2/friendly/c2c/adv/search", "application/json", bytes.NewBuffer(payload))
+	if err != nil {
+		return p2pResp, err
+	}
+	defer resp.Body.Close()
+
+	bs, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return p2pResp, err
+	}
+
+	err = json.Unmarshal(bs, &p2pResp)
+	if err != nil {
+		return p2pResp, err
+	}
+
+	return p2pResp, nil
 }
