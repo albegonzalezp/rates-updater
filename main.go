@@ -47,12 +47,6 @@ func main() {
 		log.Fatal(err)
 	}
 
-	// Get USD ->
-	rts, err = exSrv.GetRates("USD")
-	if err != nil {
-		log.Fatal(err)
-	}
-
 	// Convert rates from API to db rates
 	ratesDb := rts.ToRateDB()
 
@@ -62,8 +56,15 @@ func main() {
 		log.Fatal(err)
 	}
 
+	// Get USD ->
+	rts3, err := exSrv.GetRates("USD")
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	// Append new results to ratesDB
 	ratesDb = append(ratesDb, rts2.ToRateDB()...)
+	ratesDb = append(ratesDb, rts3.ToRateDB()...)
 
 	// Update in db or create if not exists
 	if err := db.Db.Clauses(clause.OnConflict{
@@ -90,20 +91,36 @@ func main() {
 		// If EUR -> VES we only update the payment method Dolares en Efectivo and TRansferencia bancaria
 		if rate.BaseCode == "EUR" && rate.Code == "VES" {
 
+			log.Println("Iterating over EUR/VES")
+
 			// get the rate EUR -> USD
 			var rateEurUsd models.Rate
 			if err := db.Db.Where("base_code = ? AND code = ?", "EUR", "USD").First(&rateEurUsd).Error; err != nil {
 				log.Fatal(err.Error())
 			}
 
+			log.Println("Current EUR/USD rate from db: ", rateEurUsd.Rate)
+
+			log.Println("Rate USDT/VES from p2p: ", rateP2p.Rate)
+
 			// get the rate USD -> VES from p2p
-			rate := rateEurUsd.Rate * rateP2p.Rate
+			rt := rateEurUsd.Rate * rateP2p.Rate
+
+			log.Println("Rate final for EUR/VES: ", rt)
+
+			// Update the rates table with the calculated EUR/VES rate
+			if err := db.Db.Model(&models.Rate{}).
+				Where("base_code = ? AND code = ?", "EUR", "VES").
+				Update("rate", rt).Error; err != nil {
+				log.Fatal(err.Error())
+			}
 
 			if err := db.Db.Model(&models.PaymentMethod{}).
 				Where("currency_from = ? AND currency_to = ? AND is_custom = ? AND (payment_method_type = ? or payment_method_type = ?)", 1, 3, false, 2, 1).
-				Update("rate", rate).Error; err != nil {
+				Update("rate", rt).Error; err != nil {
 				log.Fatal(err.Error())
 			}
+
 		}
 
 		// If EUR -> USD update the rate for all payment methods
@@ -144,6 +161,8 @@ func main() {
 
 			rate := 1 / rateP2p.Rate
 
+			log.Println("Rate for VES/EUR: ", rate)
+
 			// get the rate USD -> EUR
 			var rateUsdEur models.Rate
 			if err := db.Db.Where("base_code = ? AND code = ?", "USD", "EUR").First(&rateUsdEur).Error; err != nil {
@@ -151,6 +170,15 @@ func main() {
 			}
 
 			rate = rate / rateUsdEur.Rate
+
+			log.Println("Rate for USD/EUR: ", rate)
+
+			// Update the rates table with the calculated VES/EUR rate
+			if err := db.Db.Model(&models.Rate{}).
+				Where("base_code = ? AND code = ?", "VES", "EUR").
+				Update("rate", rate).Error; err != nil {
+				log.Fatal(err.Error())
+			}
 
 			if err := db.Db.Model(&models.PaymentMethod{}).
 				Where("currency_from = ? AND currency_to = ? AND is_custom = ?", 3, 1, false).
