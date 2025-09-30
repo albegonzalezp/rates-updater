@@ -171,7 +171,7 @@ func main() {
 
 			rate = rate / rateUsdEur.Rate
 
-			log.Println("Rate for USD/EUR: ", rate)
+			log.Println("Final rate for VES/EUR: ", rate)
 
 			// Update the rates table with the calculated VES/EUR rate
 			if err := db.Db.Model(&models.Rate{}).
